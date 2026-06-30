@@ -2,16 +2,20 @@
 
 #define LED_PIN D4
 #define LED_COUNT 64
-#define BRIGHTNESS 20
+#define BRIGHTNESS 2
 #define MATRIX_HEIGHT 8
 #define MATRIX_WIDTH 8
+
+#define GROW 15
 
 Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN, NEO_RGB + NEO_KHZ800);
 
 int posX = 4;
 int posY = 4;
 int dir = 0;
-int length = 6;
+int length = 1;
+
+int count = 0;
 
 uint8_t gameboard[MATRIX_HEIGHT][MATRIX_WIDTH];
 
@@ -21,6 +25,20 @@ void clearGameboard() {
       gameboard[y][x] = 0;
     }
   }
+}
+
+void resetGame() {
+  clearGameboard();
+
+  posX = 4;
+  posY = 4;
+  length = 1;
+  dir = 0;
+  count = 0;
+
+  gameboard[posY][posX] = length;
+
+  renderGameBoard();
 }
 
 void renderGameBoard() {
@@ -46,7 +64,14 @@ void renderGameBoard() {
 }
 
 void death() {
-  clearGameboard();
+  // animation
+  for(int i = 0; i < LED_COUNT; i++) {
+    pixels.setPixelColor(i, pixels.Color(255, 0, 0));
+    pixels.show();
+    delay(10);
+  }
+
+  resetGame();
 }
 
 bool isWalkable(int x, int y) {
@@ -55,6 +80,7 @@ bool isWalkable(int x, int y) {
 }
 
 void randomTurn() {
+  if(random(0, 10) > 5) return;
   if(random(0, 100) > 50) {
     dir = (dir + 90);
     if(dir >= 360) {
@@ -112,10 +138,24 @@ void removeSnakeEnd() {
   }
 }
 
+bool movePossible() {
+  return isWalkable(posX + 1, posY) || isWalkable(posX - 1, posY) || isWalkable(posX, posY + 1) || isWalkable(posX, posY - 1);
+}
+
 void updateGameboard() {
+  if(!movePossible()) {
+    death();
+    return;
+  } 
+  if((count % GROW) == 0) {
+    length++;
+  }
   moveSnake();
   removeSnakeEnd();
   // apple?
+  count++;
+
+  
 }
 
 
@@ -125,8 +165,6 @@ void setup() {
   pixels.begin();
   pixels.clear();
   pixels.setBrightness(BRIGHTNESS);
-
-  gameboard[posY][posX] = length;
 }
 
 void loop() {
