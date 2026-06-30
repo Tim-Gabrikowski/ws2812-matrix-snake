@@ -1,4 +1,5 @@
 #include <Adafruit_NeoPixel.h>
+#include <math.h>
 
 #define LED_PIN D4
 #define LED_COUNT 64
@@ -16,6 +17,11 @@ int dir = 0;
 int length = 1;
 
 int count = 0;
+
+int appleX = 8;
+int appleY = 0;
+
+int bestDirections[4];
 
 uint8_t gameboard[MATRIX_HEIGHT][MATRIX_WIDTH];
 
@@ -38,7 +44,27 @@ void resetGame() {
 
   gameboard[posY][posX] = length;
 
+  placeApple();
+
   renderGameBoard();
+}
+
+void placeApple() {
+  int nX = random(0, MATRIX_WIDTH - 1);
+  int nY = random(0, MATRIX_HEIGHT - 1);
+
+  if(isWalkable(nX, nY)) {
+    appleX = nX;
+    appleY = nY;
+
+    gameboard[nY][nX] = 255;
+  } else {
+    placeApple();
+  }
+
+}
+bool onApple() {
+  return posX == appleX && posY == appleY;
 }
 
 void renderGameBoard() {
@@ -79,6 +105,41 @@ bool isWalkable(int x, int y) {
   return (x < MATRIX_WIDTH) && (x >= 0) && (y < MATRIX_HEIGHT) && (y >= 0) && !self;
 }
 
+
+// Basically AI of the game
+void setBestDirections() {
+    int bestDist[4] = {32767, 32767, 32767, 32767};
+
+    for (int i = 0; i < 4; i++) {
+        int x = posX;
+        int y = posY;
+
+        switch (i) {
+            case 0: y--; break; // 0°
+            case 1: x++; break; // 90°
+            case 2: y++; break; // 180°
+            case 3: x--; break; // 270°
+        }
+
+        int dx = appleX - x;
+        int dy = appleY - y;
+        int dist = dx * dx + dy * dy;
+
+        // Insert into sorted position
+        for (int j = 0; j < 4; j++) {
+            if (dist < bestDist[j]) {
+                for (int k = 3; k > j; k--) {
+                    bestDist[k] = bestDist[k - 1];
+                    bestDirections[k] = bestDirections[k - 1];
+                }
+                bestDist[j] = dist;
+                bestDirections[j] = i * 90;
+                break;
+            }
+        }
+    }
+}
+
 void randomTurn() {
   if(random(0, 10) > 5) return;
   if(random(0, 100) > 50) {
@@ -95,11 +156,15 @@ void randomTurn() {
   }
 }
 
-void moveSnake() {
+void moveSnake(int dirId = 0) {
+  int sX = posX;
+  int sY = posY;
   int nX = posX;
   int nY = posY;
 
-  randomTurn();
+  if(dirId == 0) setBestDirections();
+
+  dir = bestDirections[dirId];
 
   switch (dir) {
     case 0:
@@ -121,10 +186,17 @@ void moveSnake() {
   if(isWalkable(nX, nY)) {
     posX = nX;
     posY = nY;
-    gameboard[posY][posX] = length + 1;
+
+    // check for dead ends
+    if(movePossible()) {
+      gameboard[posY][posX] = length + 1;
+    } else {
+      posX = sX;
+      posY = sY;
+      moveSnake(dirId - 1);
+    }
   } else {
-    // randomTurn();
-    moveSnake();
+    moveSnake(dirId - 1);
   }
 }
 
@@ -147,20 +219,20 @@ void updateGameboard() {
     death();
     return;
   } 
-  if((count % GROW) == 0) {
-    length++;
-  }
   moveSnake();
   removeSnakeEnd();
   // apple?
-  count++;
-
-  
+  if(onApple()) {
+    length++;
+    placeApple();
+  }
 }
 
 
 void setup() {
   clearGameboard();
+
+  resetGame();
 
   pixels.begin();
   pixels.clear();
