@@ -102,7 +102,9 @@ void death() {
 }
 
 bool isWalkable(int x, int y) {
-  bool self = gameboard[y][x] > 0 && gameboard[y][x] < 64;
+  uint8_t v = gameboard[y][x];
+  bool self = (v > 1 && v < 64);  
+
   return (x < MATRIX_WIDTH) && (x >= 0) && (y < MATRIX_HEIGHT) && (y >= 0) && !self;
 }
 
@@ -141,48 +143,39 @@ void setBestDirections() {
     }
 }
 
+bool movePossible(int x = posX, int y = posY) {
+  return isWalkable(x+ 1, y) || isWalkable(x - 1, y) || isWalkable(x, y + 1) || isWalkable(x, y - 1);
+}
+
 void moveSnake(int dirId = 0) {
-  int sX = posX;
-  int sY = posY;
-  int nX = posX;
-  int nY = posY;
+  setBestDirections();
 
-  if(dirId == 0) setBestDirections();
+  for (int i = 0; i < 4; i++) {
+      int nX = posX;
+      int nY = posY;
 
-  dir = bestDirections[dirId];
+      switch(bestDirections[i]) {
+          case 0:   nY--; break;
+          case 90:  nX++; break;
+          case 180: nY++; break;
+          case 270: nX--; break;
+      }
 
-  switch (dir) {
-    case 0:
-      nY--;
-      break;
-    case 90:
-      nX++;
-      break;
-    case 180:
-      nY++;
-      break;
-    case 270:
-      nX--;
-      break;
-    default:
-      death();
-      break;
-  }
-  if(isWalkable(nX, nY)) {
-    posX = nX;
-    posY = nY;
+      if (!isWalkable(nX, nY))
+          continue;
 
-    // check for dead ends
-    if(movePossible()) {
+      // further checks...
+      if (!movePossible(nX, nY))
+        continue;
+
+      posX = nX;
+      posY = nY;
+      dir = bestDirections[i];
       gameboard[posY][posX] = length + 1;
-    } else {
-      posX = sX;
-      posY = sY;
-      moveSnake(dirId + 1);
-    }
-  } else {
-    moveSnake(dirId + 1);
+      return;
   }
+
+  death();
 }
 
 void removeSnakeEnd() {
@@ -193,10 +186,6 @@ void removeSnakeEnd() {
       }
     }
   }
-}
-
-bool movePossible() {
-  return isWalkable(posX + 1, posY) || isWalkable(posX - 1, posY) || isWalkable(posX, posY + 1) || isWalkable(posX, posY - 1);
 }
 
 void updateGameboard() {
