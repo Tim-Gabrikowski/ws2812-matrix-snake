@@ -50,8 +50,8 @@ void resetGame() {
 }
 
 void placeApple() {
-  int nX = random(0, MATRIX_WIDTH - 1);
-  int nY = random(0, MATRIX_HEIGHT - 1);
+  int nX = random(0, MATRIX_WIDTH);
+  int nY = random(0, MATRIX_HEIGHT);
 
   if(isWalkable(nX, nY)) {
     appleX = nX;
@@ -90,6 +90,7 @@ void renderGameBoard() {
 }
 
 void death() {
+  delay(1500);
   // animation
   for(int i = 0; i < LED_COUNT; i++) {
     pixels.setPixelColor(i, pixels.Color(255, 0, 0));
@@ -140,22 +141,6 @@ void setBestDirections() {
     }
 }
 
-void randomTurn() {
-  if(random(0, 10) > 5) return;
-  if(random(0, 100) > 50) {
-    dir = (dir + 90);
-    if(dir >= 360) {
-      dir = 0;
-    }
-  } else {
-    if(dir <= 0) {
-      dir = 270;
-    } else {
-      dir -= 90;
-    }
-  }
-}
-
 void moveSnake(int dirId = 0) {
   int sX = posX;
   int sY = posY;
@@ -193,10 +178,10 @@ void moveSnake(int dirId = 0) {
     } else {
       posX = sX;
       posY = sY;
-      moveSnake(dirId - 1);
+      moveSnake(dirId + 1);
     }
   } else {
-    moveSnake(dirId - 1);
+    moveSnake(dirId + 1);
   }
 }
 
