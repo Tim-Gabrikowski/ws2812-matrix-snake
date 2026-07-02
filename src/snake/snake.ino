@@ -233,5 +233,5 @@ void loop() {
   pixels.show();
 
   updateGameboard();
-  delay(500);
+  delay(400);
 }
