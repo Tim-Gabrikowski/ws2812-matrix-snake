@@ -258,6 +258,10 @@ void setup() {
   gameboard[5][8] = 5;
   gameboard[5][3] = 5;
   gameboard[5][2] = 5;
+  
+  gameboard[1][3] = 5;
+  gameboard[0][3] = 5;
+  gameboard[2][3] = 5;
 
 
   addNodeToOpen(start);
