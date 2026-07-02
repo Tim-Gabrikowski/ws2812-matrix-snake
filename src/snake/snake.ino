@@ -26,8 +26,8 @@ int bestDirections[4];
 uint8_t gameboard[MATRIX_HEIGHT][MATRIX_WIDTH];
 
 void clearGameboard() {
-  for(int y = 0; y < MATRIX_HEIGHT; y++) {
-    for(int x = 0; x < MATRIX_WIDTH; x++) {
+  for (int y = 0; y < MATRIX_HEIGHT; y++) {
+    for (int x = 0; x < MATRIX_WIDTH; x++) {
       gameboard[y][x] = 0;
     }
   }
@@ -53,7 +53,7 @@ void placeApple() {
   int nX = random(0, MATRIX_WIDTH);
   int nY = random(0, MATRIX_HEIGHT);
 
-  if(isWalkable(nX, nY)) {
+  if (isWalkable(nX, nY)) {
     appleX = nX;
     appleY = nY;
 
@@ -61,20 +61,19 @@ void placeApple() {
   } else {
     placeApple();
   }
-
 }
 bool onApple() {
   return posX == appleX && posY == appleY;
 }
 
 void renderGameBoard() {
-  for(int y = 0; y < MATRIX_HEIGHT; y++) {
-    for(int x = 0; x < MATRIX_WIDTH; x++) {
+  for (int y = 0; y < MATRIX_HEIGHT; y++) {
+    for (int x = 0; x < MATRIX_WIDTH; x++) {
       uint16_t id = y * MATRIX_WIDTH + x;
-      
+
       uint8_t value = gameboard[y][x];
 
-      if(value == 0) {
+      if (value == 0) {
         pixels.setPixelColor(id, pixels.Color(0, 0, 0));
       } else if (value == length) {
         pixels.setPixelColor(id, pixels.Color(255, 255, 0));
@@ -92,7 +91,7 @@ void renderGameBoard() {
 void death() {
   delay(1500);
   // animation
-  for(int i = 0; i < LED_COUNT; i++) {
+  for (int i = 0; i < LED_COUNT; i++) {
     pixels.setPixelColor(i, pixels.Color(255, 0, 0));
     pixels.show();
     delay(10);
@@ -103,7 +102,7 @@ void death() {
 
 bool isWalkable(int x, int y) {
   uint8_t v = gameboard[y][x];
-  bool self = (v > 1 && v < 64);  
+  bool self = (v > 1 && v < 64);
 
   return (x < MATRIX_WIDTH) && (x >= 0) && (y < MATRIX_HEIGHT) && (y >= 0) && !self;
 }
@@ -111,95 +110,110 @@ bool isWalkable(int x, int y) {
 
 // Basically AI of the game
 void setBestDirections() {
-    int bestDist[4] = {32767, 32767, 32767, 32767};
+  int bestDist[4] = { 32767, 32767, 32767, 32767 };
 
-    for (int i = 0; i < 4; i++) {
-        int x = posX;
-        int y = posY;
+  for (int i = 0; i < 4; i++) {
+    int x = posX;
+    int y = posY;
 
-        switch (i) {
-            case 0: y--; break; // 0°
-            case 1: x++; break; // 90°
-            case 2: y++; break; // 180°
-            case 3: x--; break; // 270°
-        }
-
-        int dx = appleX - x;
-        int dy = appleY - y;
-        int dist = dx * dx + dy * dy;
-
-        // Insert into sorted position
-        for (int j = 0; j < 4; j++) {
-            if (dist < bestDist[j]) {
-                for (int k = 3; k > j; k--) {
-                    bestDist[k] = bestDist[k - 1];
-                    bestDirections[k] = bestDirections[k - 1];
-                }
-                bestDist[j] = dist;
-                bestDirections[j] = i * 90;
-                break;
-            }
-        }
+    switch (i) {
+      case 0: y--; break;  // 0°
+      case 1: x++; break;  // 90°
+      case 2: y++; break;  // 180°
+      case 3: x--; break;  // 270°
     }
+
+    int dx = appleX - x;
+    int dy = appleY - y;
+    int dist = dx * dx + dy * dy;
+
+    // Insert into sorted position
+    for (int j = 0; j < 4; j++) {
+      if (dist < bestDist[j]) {
+        for (int k = 3; k > j; k--) {
+          bestDist[k] = bestDist[k - 1];
+          bestDirections[k] = bestDirections[k - 1];
+        }
+        bestDist[j] = dist;
+        bestDirections[j] = i * 90;
+        break;
+      }
+    }
+  }
 }
 
 bool movePossible(int x = posX, int y = posY) {
-  return isWalkable(x+ 1, y) || isWalkable(x - 1, y) || isWalkable(x, y + 1) || isWalkable(x, y - 1);
+  return isWalkable(x + 1, y) || isWalkable(x - 1, y) || isWalkable(x, y + 1) || isWalkable(x, y - 1);
 }
 
 void moveSnake(int dirId = 0) {
+  // let alg check for best Directions to move in
   setBestDirections();
 
+  // go through all diretions in order of best to worse
   for (int i = 0; i < 4; i++) {
-      int nX = posX;
-      int nY = posY;
+    int nX = posX;
+    int nY = posY;
 
-      switch(bestDirections[i]) {
-          case 0:   nY--; break;
-          case 90:  nX++; break;
-          case 180: nY++; break;
-          case 270: nX--; break;
-      }
+    switch (bestDirections[i]) {
+      case 0: nY--; break;
+      case 90: nX++; break;
+      case 180: nY++; break;
+      case 270: nX--; break;
+    }
 
-      if (!isWalkable(nX, nY))
-          continue;
+    // checks to see if the direction is walkable
+    if (!isWalkable(nX, nY))
+      continue;
 
-      // further checks...
-      if (!movePossible(nX, nY))
-        continue;
+    // fcheck that the direction doesn't end in a dead end.
+    // if (!movePossible(nX, nY))
+    //   continue;
 
-      posX = nX;
-      posY = nY;
-      dir = bestDirections[i];
-      gameboard[posY][posX] = length + 1;
-      return;
+    // perform actual move
+    posX = nX;
+    posY = nY;
+    dir = bestDirections[i];
+    gameboard[posY][posX] = length + 1;
+
+    return;
   }
 
   death();
 }
 
 void removeSnakeEnd() {
-  for(int y = 0; y < MATRIX_HEIGHT; y++) {
-    for(int x = 0; x < MATRIX_WIDTH; x++) {
-      if(gameboard[y][x] > 0 && gameboard[y][x] < 64) {
+  for (int y = 0; y < MATRIX_HEIGHT; y++) {
+    for (int x = 0; x < MATRIX_WIDTH; x++) {
+      if (gameboard[y][x] > 0 && gameboard[y][x] < 64) {
         gameboard[y][x] -= 1;
+      }
+    }
+  }
+}
+void extendSnake() {
+  for (int y = 0; y < MATRIX_HEIGHT; y++) {
+    for (int x = 0; x < MATRIX_WIDTH; x++) {
+      if (gameboard[y][x] > 0 && gameboard[y][x] < 64) {
+        gameboard[y][x] += 1;
       }
     }
   }
 }
 
 void updateGameboard() {
-  if(!movePossible()) {
+  if (!movePossible()) {
     death();
     return;
-  } 
+  }
   moveSnake();
-  removeSnakeEnd();
-  // apple?
-  if(onApple()) {
+  if (onApple()) {
+    extendSnake();
     length++;
     placeApple();
   }
+  removeSnakeEnd();
+  // apple?
 }
 
 
